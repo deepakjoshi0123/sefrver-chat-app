@@ -10,6 +10,7 @@ const {
   removeUser,
   getUser,
   getUsersInRoom,
+  getSocketId,
 } = require("./services /service");
 
 const app = express();
@@ -22,19 +23,22 @@ app.use(router);
 
 io.on("connect", (socket) => {
   socket.on("join", ({ email, room }, callback) => {
-    console.log(" err - > ", email, room);
+    // console.log(" err - > ", email, room);
     const { error, user } = addUser({ id: socket.id, email, room });
-    // console.log(socket.id, "user : ", user, "name : ", name);
+    // console.log(socket.id, " right or wrong user : ", user);
     if (error) return callback(error);
     socket.join(user.room);
     socket.emit("message", {
       user: "admin",
-      text: `${user.name}, welcome to room ${user.room}.`,
+      text: `${user.email}, welcome to room ${user.room}.`,
+      time: new Date(new Date().getTime()).toLocaleTimeString(),
     });
 
-    socket.broadcast
-      .to(user.room)
-      .emit("message", { user: "admin", text: `${user.name} has joined!` });
+    socket.broadcast.to(user.room).emit("message", {
+      user: "admin",
+      text: `${user.email} has joined!`,
+      time: new Date(new Date().getTime()).toLocaleTimeString(),
+    });
 
     io.to(user.room).emit("roomData", {
       room: user.room,
@@ -44,30 +48,50 @@ io.on("connect", (socket) => {
     callback();
   });
 
-  //__________________________for one to one message____________________________________
+  //__________________________for one to one message______________________________________
 
-  socket.on("1to1message", ({ message, user }) => {
-    //socket.join(user);
-    console.log("1 to 1", user, message);
-    socket.emit("1to1message", { user: user, msg: message });
+  socket.on("1to1message", ({ message, user, usrfrnd }) => {
+    console.log("is it same ", getSocketId(usrfrnd)[0].id);
+    socket.to(getSocketId(usrfrnd)[0].id).emit("1to1message", {
+      user: user,
+      msg: message,
+      frnd: usrfrnd,
+    });
   });
-  //_______________________________________________________________________________--
 
-  socket.on("sendMessage", (message, callback) => {
-    const user = getUser(socket.id);
+  socket.on("acceptfrndreq", (usrfrnd) => {
+    console.log("yesemitted", usrfrnd);
+    console.log("why not going", getSocketId(usrfrnd)[0].id);
+    socket.to(getSocketId(usrfrnd)[0]).emit("acceptfrndreq", {
+      usrfrnd: usrfrnd,
+    });
+  });
+
+  socket.on("sendMessagePVT", (message, sendby, sento) => {
+    socket.to(getSocketId(sentto)).emit({ message: message });
+  });
+
+  //_________________________________________________________________________________________
+
+  socket.on("sendMessage", (message, activetab, callback) => {
+    const user = getUser(socket.id); // to get who sended this msg  , to get sender(client) socket id
     if (user) {
-      io.to(user.room).emit("message", { user: user.name, text: message });
+      io.to(user.room).emit("message", {
+        user: user.email,
+        text: message,
+        time: new Date(new Date().getTime()).toLocaleTimeString(),
+      });
     }
     callback();
   });
 
   socket.on("disconnect", () => {
     const user = removeUser(socket.id);
-    console.log("user disconnted ");
+    // console.log("user disconnted ");
     if (user) {
       io.to(user.room).emit("message", {
         user: "Admin",
-        text: `${user.name} has left.`,
+        text: `${user.email} has left.`,
       });
       io.to(user.room).emit("roomData", {
         room: user.room,
@@ -77,6 +101,4 @@ io.on("connect", (socket) => {
   });
 });
 
-server.listen(process.env.PORT || 3001, () =>
-  console.log(`chat server ready to serve `)
-);
+server.listen(process.env.PORT || 3001);

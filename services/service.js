@@ -5,7 +5,7 @@ const addUser = ({ id, email, room }) => {
   room = room.trim().toLowerCase();
 
   const existingUser = users.find(
-    (user) => user.room === room && user.name === name
+    (user) => user.room === room && user.email === email
   );
 
   if (!email || !room) return { error: "Username and room are required." };
@@ -14,7 +14,7 @@ const addUser = ({ id, email, room }) => {
   const user = { id, email, room };
 
   users.push(user);
-  console.log(user);
+  console.log("socket ", user);
   return { user };
 };
 
@@ -28,4 +28,6 @@ const getUser = (id) => users.find((user) => user.id === id);
 
 const getUsersInRoom = (room) => users.filter((user) => user.room === room);
 
-module.exports = { addUser, removeUser, getUser, getUsersInRoom };
+const getSocketId = (usrfrnd) => users.filter((user) => user.email === usrfrnd);
+
+module.exports = { addUser, removeUser, getUser, getUsersInRoom, getSocketId };
