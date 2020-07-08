@@ -11,6 +11,7 @@ const {
   getUser,
   getUsersInRoom,
   getSocketId,
+  checkifitsROom,
 } = require("./services /service");
 
 const app = express();
@@ -32,12 +33,14 @@ io.on("connect", (socket) => {
       user: "admin",
       text: `${user.email}, welcome to room ${user.room}.`,
       time: new Date(new Date().getTime()).toLocaleTimeString(),
+      addto: room,
     });
 
     socket.broadcast.to(user.room).emit("message", {
       user: "admin",
       text: `${user.email} has joined!`,
       time: new Date(new Date().getTime()).toLocaleTimeString(),
+      addto: room,
     });
 
     io.to(user.room).emit("roomData", {
@@ -67,22 +70,45 @@ io.on("connect", (socket) => {
     });
   });
 
-  socket.on("sendMessagePVT", (message, sendby, sento) => {
-    socket.to(getSocketId(sentto)).emit({ message: message });
-  });
+  // socket.on("sendMessagePVT", (message, sendby, sento) => {
+  //   socket.to(getSocketId(sentto)).emit({ message: message });
+  // });
 
-  //_________________________________________________________________________________________
+  //__________________________________________________________________________________________________
 
   socket.on("sendMessage", (message, activetab, callback) => {
-    const user = getUser(socket.id); // to get who sended this msg  , to get sender(client) socket id
-    if (user) {
-      io.to(user.room).emit("message", {
+    console.log("send msg ", message);
+    const user = getUser(socket.id);
+    let IsRoom = checkifitsROom(activetab);
+    if (IsRoom) {
+      console.log("check what is this ? ", IsRoom[0].room);
+      io.to(IsRoom[0].room).emit("message", {
         user: user.email,
         text: message,
         time: new Date(new Date().getTime()).toLocaleTimeString(),
+        addto: activetab,
       });
     }
     callback();
+    //const user = getSocketId(activetab)[0]; // to get who sended this msg  , to get sender(client) socket id
+    console.log("deepak", activetab);
+
+    // if (user && checkifitsROom(activetab)) {
+    //   console.log("yes emitting ");
+    //   io.to(user.room).emit("message", {
+    //     user: user.email,
+    //     text: message,
+    //     time: new Date(new Date().getTime()).toLocaleTimeString(),
+    //     addto: activetab,
+    //   });
+    // } else {
+    //   socket.to(getSocketId(activetab)[0].id).emit("message", {
+    //     user: user.email,
+    //     text: message,
+    //     time: new Date(new Date().getTime()).toLocaleTimeString(),
+    //     addto: activetab,
+    //}
+    // }
   });
 
   socket.on("disconnect", () => {
@@ -92,6 +118,7 @@ io.on("connect", (socket) => {
       io.to(user.room).emit("message", {
         user: "Admin",
         text: `${user.email} has left.`,
+        addto: user.room,
       });
       io.to(user.room).emit("roomData", {
         room: user.room,

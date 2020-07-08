@@ -14,7 +14,6 @@ const addUser = ({ id, email, room }) => {
   const user = { id, email, room };
 
   users.push(user);
-  console.log("socket ", user);
   return { user };
 };
 
@@ -30,4 +29,13 @@ const getUsersInRoom = (room) => users.filter((user) => user.room === room);
 
 const getSocketId = (usrfrnd) => users.filter((user) => user.email === usrfrnd);
 
-module.exports = { addUser, removeUser, getUser, getUsersInRoom, getSocketId };
+const checkifitsROom = (isroom) => users.filter((user) => user.room === isroom);
+
+module.exports = {
+  addUser,
+  removeUser,
+  getUser,
+  getUsersInRoom,
+  getSocketId,
+  checkifitsROom,
+};
